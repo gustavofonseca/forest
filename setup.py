@@ -9,6 +9,9 @@ if PY2:
     tests_require.append('mock')
 
 
+install_requires = ['requests']
+
+
 setup(
     name="scielo.forest",
     version='0.1',
@@ -27,6 +30,7 @@ setup(
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
     ],
+    install_requires=install_requires,
     tests_require=tests_require,
     test_suite='tests',
 )
