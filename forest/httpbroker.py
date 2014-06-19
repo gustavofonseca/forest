@@ -10,6 +10,8 @@ from . import exceptions
 __all__ = ['get', 'post']
 
 DEFAULT_SCHEME = 'http'
+DEFAULT_USER_AGENT = 'scielo-forest'
+
 logger = logging.getLogger(__name__)
 
 
@@ -143,7 +145,7 @@ def get(url, params=None, auth=None, check_ca=False, user_agent=None):
     :param user_agent: (optional) string of the user agent.
     """
     # custom headers
-    headers = {'User-Agent': user_agent}
+    headers = {'User-Agent': user_agent or DEFAULT_USER_AGENT}
 
     optionals = {}
     if auth:
@@ -166,7 +168,7 @@ def get(url, params=None, auth=None, check_ca=False, user_agent=None):
     return resp.json()
 
 
-def post(api_uri, data, endpoint=None, auth=None, check_ca=False):
+def post(url, data, auth=None, check_ca=False, user_agent=None):
     """
     Dispatches an HTTP POST request to `api_uri`, with `data`.
 
@@ -174,36 +176,29 @@ def post(api_uri, data, endpoint=None, auth=None, check_ca=False):
     like endpoints. A new resource is created and its URL is
     returned.
 
-    :param api_uri: e.g. http://manager.scielo.org/api/v1/
+    :param url: e.g. http://manager.scielo.org/api/v1/journals/
     :param data: json serializable Python datastructures.
-    :param endpoint: (optional) a valid endpoint at http://manager.scielo.org/api/v1/
-    :param auth: (optional) a pair of `username` and `api_key`.
+    :param auth: (optional) `forest.auth.AuthBase` instance.
     :param check_ca: (optional) if certification authority should be checked during ssl sessions. Defaults to `False`.
+    :param user_agent: (optional) string of the user agent.
     :returns: newly created resource url
     """
-    if auth:
-        username, api_key = auth
-    else:
-        username = api_key = None
-
-    full_url = _make_full_url(api_uri, endpoint)
-
     # custom headers
-    headers = {'User-Agent': __user_agent__,
+    headers = {'User-Agent': user_agent or DEFAULT_USER_AGENT,
                'Content-Type': 'application/json'}
 
     optionals = {}
-    if username and api_key:
-        optionals['auth'] = ApiKeyAuth(username, api_key)
+    if auth:
+        optionals['auth'] = auth
 
-    if full_url.startswith('https'):
+    if url.startswith('https'):
         optionals['verify'] = check_ca
 
     prepared_data = prepare_data(data)
     logger.debug('Sending a POST request to %s with headers %s, data %s and params %s' %
-        (full_url, headers, prepared_data, optionals))
+        (url, headers, prepared_data, optionals))
 
-    resp = requests.post(url=full_url,
+    resp = requests.post(url=url,
                          data=prepared_data,
                          headers=headers,
                          **optionals)
@@ -212,7 +207,7 @@ def post(api_uri, data, endpoint=None, auth=None, check_ca=False):
     check_http_status(resp)
 
     if resp.status_code != 201:
-        raise exceptions.APIError('The server gone nuts: %s' % resp.status_code)
+        raise exceptions.APIError('The server has gone nuts: %s' % resp.status_code)
 
     logger.info('Newly created resource at %s' % resp.headers['location'])
 
