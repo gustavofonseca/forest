@@ -1,4 +1,8 @@
 import unittest
+try:
+    from unittest import mock
+except ImportError: # PY2
+    import mock
 
 import requests
 
@@ -163,70 +167,38 @@ class PrepareParamsFunctionTests(unittest.TestCase):
 
 class GetFunctionTests(unittest.TestCase):
 
-    @unittest.skip('to do')
     def test_user_agent_is_properly_set(self):
         """
         By properly I mean: scieloapi/:version, e.g.
         scieloapi/0.4
         """
-        mock_response = self.mocker.mock(requests.Response)
-        mock_response.json()
-        self.mocker.result({'title': 'foo'})
-        mock_response.status_code
-        self.mocker.result(200)
+        mock_requests = mock.MagicMock()
+        mock_requests.get.return_value = doubles.RequestsResponseStub()
 
-        mock_requests_get = self.mocker.mock()
-        mock_requests_get('http://manager.scielo.org/api/v1/journals/70/',
-                          headers=mocker.MATCH(lambda x: x['User-Agent'].startswith('scieloapi/')),
-                          params=None)
-        self.mocker.result(mock_response)
+        with mock.patch.dict('forest.httpbroker.__dict__', requests=mock_requests):
+            httpbroker.get('http://manager.scielo.org/api/v1/journals/70/',
+                           user_agent='scielo.forest')
 
-        mock_requests = self.mocker.replace('requests')
-        mock_requests.get
-        self.mocker.result(mock_requests_get)
+            self.assertTrue(httpbroker.requests.get.called)
+            self.assertEqual(httpbroker.requests.get.call_args,
+                             mock.call('http://manager.scielo.org/api/v1/journals/70/',
+                                       headers={'User-Agent': 'scielo.forest'},
+                                       params=None))
 
-        self.mocker.replay()
+    def test_https_turns_off_ca_cert_verification_by_default(self):
+        mock_requests = mock.MagicMock()
+        mock_requests.get.return_value = doubles.RequestsResponseStub()
 
-        self.assertEqual(
-            httpbroker.get('http://manager.scielo.org/api/v1/',
-                endpoint='journals', resource_id='70'),
-            {'title': 'foo'}
-        )
+        with mock.patch.dict('forest.httpbroker.__dict__', requests=mock_requests):
+            httpbroker.get('https://manager.scielo.org/api/v1/journals/70/',
+                           user_agent='scielo.forest')
 
-    def test_resource_id_makes_endpoint_mandatory(self):
-        self.assertRaises(
-            ValueError,
-            lambda: httpbroker.get('http://manager.scielo.org/api/v1/', resource_id='70')
-        )
-
-    @unittest.skip('to do')
-    def test_https_turns_off_ca_cert_verification(self):
-        import requests
-        mock_response = self.mocker.mock(requests.Response)
-        mock_response.json()
-        self.mocker.result({'title': 'foo'})
-        mock_response.status_code
-        self.mocker.result(200)
-
-        mock_requests_get = self.mocker.mock()
-        mock_requests_get('https://manager.scielo.org/api/v1/journals/70/',
-                          headers=mocker.ANY,
-                          params=None,
-                          verify=False)
-        self.mocker.result(mock_response)
-
-        mock_requests = self.mocker.replace('requests')
-        mock_requests.get
-        self.mocker.result(mock_requests_get)
-
-        self.mocker.replay()
-
-        self.assertEqual(
-            httpbroker.get('https://manager.scielo.org/api/v1/',
-                endpoint='journals', resource_id='70'),
-            {'title': 'foo'}
-        )
-
+            self.assertTrue(httpbroker.requests.get.called)
+            self.assertEqual(httpbroker.requests.get.call_args,
+                             mock.call('https://manager.scielo.org/api/v1/journals/70/',
+                                       headers={'User-Agent': 'scielo.forest'},
+                                       params=None,
+                                       verify=False))
 
 class PostFunctionTests(unittest.TestCase):
     @unittest.skip('to do')

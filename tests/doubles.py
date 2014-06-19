@@ -53,6 +53,9 @@ class RequestsResponseStub(object):
     def __init__(self, *args, **kwargs):
         self.status_code = 200
 
+    def json(self):
+        return {'foo': 'bar'}
+
 
 httpbroker_stub = types.ModuleType('httpbroker')
 httpbroker_stub.get = lambda *args, **kwargs: {}

@@ -127,45 +127,35 @@ def _make_full_url(*uri_segs):
 
 
 @translate_exceptions
-def get(api_uri, endpoint=None, resource_id=None, params=None, auth=None, check_ca=False, user_agent=None):
+def get(url, params=None, auth=None, check_ca=False, user_agent=None):
     """
-    Dispatches an HTTP GET request to `api_uri`.
+    Dispatches an HTTP GET request to `url`.
 
     This function is tied to some concepts of Restful interfaces
     like endpoints and resource ids. Any querystring params must
     be passed as dictionaries to `params`.
 
-    :param api_uri: e.g. http://manager.scielo.org/api/v1/
-    :param endpoint: (optional) a valid endpoint at http://manager.scielo.org/api/v1/
-    :param resource_id: (optional) an int representing the document.
+    :param url: A resource's url.
     :param params: (optional) params to be passed as query string.
-    :param auth: (optional) a pair of `username` and `api_key`.
-    :param check_ca: (optional) if certification authority should be checked during ssl sessions. Defaults to `False`.
+    :param auth: (optional) instance of `forest.auth.AuthBase`.
+    :param check_ca: (optional) if certification authority should be checked during
+    ssl sessions. Defaults to `False`.
+    :param user_agent: (optional) string of the user agent.
     """
-    if not endpoint and resource_id:
-        raise ValueError('resource_id depends on an endpoint definition')
-
-    if auth:
-        username, api_key = auth
-    else:
-        username = api_key = None
-
-    full_uri = _make_full_url(api_uri, endpoint, resource_id)
-
     # custom headers
     headers = {'User-Agent': user_agent}
 
     optionals = {}
-    if username and api_key:
-        optionals['auth'] = ApiKeyAuth(username, api_key)
+    if auth:
+        optionals['auth'] = auth
 
-    if full_uri.startswith('https'):
+    if url.startswith('https'):
         optionals['verify'] = check_ca
 
     logger.debug('Sending a GET request to %s with headers %s and params %s %s' %
-        (full_uri, headers, params, optionals))
+        (url, headers, params, optionals))
 
-    resp = requests.get(full_uri,
+    resp = requests.get(url,
                         headers=headers,
                         params=prepare_params(params),
                         **optionals)
