@@ -1,16 +1,19 @@
+# coding: utf-8
+from __future__ import unicode_literals
+
 import json
 from functools import wraps
 import logging
 
 import requests
 
-from . import exceptions
+from . import exceptions, compat
 
 
 __all__ = ['get', 'post']
 
 DEFAULT_SCHEME = 'http'
-DEFAULT_USER_AGENT = 'scielo-forest'
+DEFAULT_USER_AGENT = 'scielo-client'
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +108,7 @@ def prepare_data(data):
 
     :param data: json serializable data
     """
-    prepared = data if isinstance(data, basestring) else json.dumps(data)
+    prepared = data if isinstance(data, compat.string_types) else json.dumps(data)
     return prepared
 
 
