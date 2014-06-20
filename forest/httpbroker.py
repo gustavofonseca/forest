@@ -1,8 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
-import json
 from functools import wraps
+import json
 import logging
 
 import requests
@@ -10,7 +9,7 @@ import requests
 from . import exceptions, compat
 
 
-__all__ = ['get', 'post']
+__all__ = ['get', 'post', '_make_full_url']
 
 DEFAULT_SCHEME = 'http'
 DEFAULT_USER_AGENT = 'scielo-client'
