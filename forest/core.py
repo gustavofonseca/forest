@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 import logging
+import time
 
 from . import httpbroker
 from . import exceptions
@@ -30,7 +31,7 @@ class Connector(object):
 
 
     def fetch_data(self, resource_path=None, max_retries=5,
-                   retry_timeout_factor=1, params=None):
+                   retry_timeout_factor=0, params=None):
         """
         Fetches the specified resource.
 
@@ -54,7 +55,7 @@ class Connector(object):
                 if err_count < max_retries:
                     wait_secs = err_count * retry_timeout_factor
                     logger.info('%s. Waiting %ss to retry.' % (e, wait_secs))
-                    self._time.sleep(wait_secs)
+                    time.sleep(wait_secs)
                     err_count += 1
                     continue
                 else:

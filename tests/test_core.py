@@ -4,7 +4,7 @@ try:
 except ImportError: # PY2
     import mock
 
-from forest import core
+from forest import core, exceptions
 from . import doubles
 
 
@@ -69,3 +69,104 @@ class ConnectorTests(unittest.TestCase):
                                         params=None,
                                         auth=None))
 
+    def test_fetch_data_with_params(self):
+        mock_get = mock.MagicMock()
+        mock_get.return_value = sample_one
+
+        fake_httpbroker = doubles.make_fake_httpbroker()
+        fake_httpbroker.get = mock_get
+
+        with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker):
+            conn = core.Connector('http://api.foo.com/api/v1/')
+
+            _ = conn.fetch_data('/journals/', params={'collection': 'mexico'})
+            self.assertEquals(fake_httpbroker.get.call_args,
+                              mock.call('http://api.foo.com/api/v1/journals/',
+                                        params={'collection': 'mexico'},
+                                        auth=None))
+
+    def test_fetch_data_with_auth(self):
+        mock_get = mock.MagicMock()
+        mock_get.return_value = sample_one
+
+        fake_httpbroker = doubles.make_fake_httpbroker()
+        fake_httpbroker.get = mock_get
+
+        class Auth(object):
+            pass
+
+        with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker):
+            auth = Auth()
+            conn = core.Connector('http://api.foo.com/api/v1/', auth=auth)
+
+            _ = conn.fetch_data('/journals/')
+            self.assertEquals(fake_httpbroker.get.call_args,
+                              mock.call('http://api.foo.com/api/v1/journals/',
+                                        params=None,
+                                        auth=auth))
+
+    def test_fetch_data_retry_on_ConnectionError(self):
+        calls = [exceptions.ConnectionError, sample_one]
+        mock_get = mock.MagicMock(side_effect=calls)
+
+        fake_httpbroker = doubles.make_fake_httpbroker()
+        fake_httpbroker.get = mock_get
+
+        with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker):
+            conn = core.Connector('http://api.foo.com/api/v1/')
+
+            self.assertEquals(sample_one, conn.fetch_data('/journals/2/'))
+            self.assertEquals(fake_httpbroker.get.call_args,
+                              mock.call('http://api.foo.com/api/v1/journals/2/',
+                                        params=None,
+                                        auth=None))
+
+    def test_fetch_data_retry_on_ServiceUnavailable(self):
+        calls = [exceptions.ServiceUnavailable, sample_one]
+        mock_get = mock.MagicMock(side_effect=calls)
+
+        fake_httpbroker = doubles.make_fake_httpbroker()
+        fake_httpbroker.get = mock_get
+
+        with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker):
+            conn = core.Connector('http://api.foo.com/api/v1/')
+
+            self.assertEquals(sample_one, conn.fetch_data('/journals/2/'))
+            self.assertEquals(fake_httpbroker.get.call_args,
+                              mock.call('http://api.foo.com/api/v1/journals/2/',
+                                        params=None,
+                                        auth=None))
+
+    def test_fetch_data_retry_timeout_factor(self):
+        calls = [exceptions.ServiceUnavailable,
+                 exceptions.ServiceUnavailable,
+                 sample_one]
+        mock_get = mock.MagicMock(side_effect=calls)
+
+        fake_httpbroker = doubles.make_fake_httpbroker()
+        fake_httpbroker.get = mock_get
+
+        mock_time = mock.MagicMock()
+        mock_time.sleep.return_value = None
+
+        with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker,
+                                                     time=mock_time):
+            conn = core.Connector('http://api.foo.com/api/v1/')
+
+            self.assertEquals(sample_one, conn.fetch_data('/journals/2/',
+                                                          retry_timeout_factor=0.5))
+            self.assertEquals(mock_time.sleep.call_args_list,
+                              [mock.call(0.0), mock.call(0.5)])
+
+    def test_fetch_data_raises_if_reach_max_retries(self):
+        calls = [exceptions.ServiceUnavailable] * 3
+        mock_get = mock.MagicMock(side_effect=calls)
+
+        fake_httpbroker = doubles.make_fake_httpbroker()
+        fake_httpbroker.get = mock_get
+
+        with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker):
+            conn = core.Connector('http://api.foo.com/api/v1/')
+
+            self.assertRaises(exceptions.ServiceUnavailable,
+                              lambda: conn.fetch_data('/journals/2/', max_retries=2))
