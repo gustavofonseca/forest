@@ -169,3 +169,5 @@ class ConnectorTests(unittest.TestCase):
 
             self.assertRaises(exceptions.ServiceUnavailable,
                               lambda: conn.fetch_data('/journals/2/'))
+
+

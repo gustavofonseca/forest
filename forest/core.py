@@ -88,13 +88,13 @@ class Connector(object):
     def __get_docs__(self, data):
         """Returns the iterable that will be consumed by iter_docs.
         """
-        #return data['objects']
         raise NotImplementedError()
 
     def __resumption_resource_path__(self, data):
         """Returns a pair of resource_path and params, just like
         `iter_docs` or `fetch_data` would accept.
         """
-        #return data['meta']['next']
         raise NotImplementedError()
+
+
 
