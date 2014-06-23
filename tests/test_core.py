@@ -151,10 +151,9 @@ class ConnectorTests(unittest.TestCase):
 
         with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker,
                                                      time=mock_time):
-            conn = core.Connector('http://api.foo.com/api/v1/')
+            conn = core.Connector('http://api.foo.com/api/v1/', retry_timeout_factor=0.5)
 
-            self.assertEquals(sample_one, conn.fetch_data('/journals/2/',
-                                                          retry_timeout_factor=0.5))
+            self.assertEquals(sample_one, conn.fetch_data('/journals/2/'))
             self.assertEquals(mock_time.sleep.call_args_list,
                               [mock.call(0.0), mock.call(0.5)])
 
@@ -166,7 +165,7 @@ class ConnectorTests(unittest.TestCase):
         fake_httpbroker.get = mock_get
 
         with mock.patch.dict('forest.core.__dict__', httpbroker=fake_httpbroker):
-            conn = core.Connector('http://api.foo.com/api/v1/')
+            conn = core.Connector('http://api.foo.com/api/v1/', max_retries=2)
 
             self.assertRaises(exceptions.ServiceUnavailable,
-                              lambda: conn.fetch_data('/journals/2/', max_retries=2))
+                              lambda: conn.fetch_data('/journals/2/'))
